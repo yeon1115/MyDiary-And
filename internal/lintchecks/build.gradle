@@ -1,0 +1,15 @@
+plugins {
+    id 'com.android.library'
+}
+android {
+    compileSdkVersion 33
+
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 33
+    }
+}
+
+dependencies {
+    lintChecks project(":internal:lint")
+}
