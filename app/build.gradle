@@ -50,6 +50,8 @@ dependencies {
 
     // Firebase Realtime Database (Kotlin)
     implementation 'com.google.firebase:firebase-database-ktx'
+    // Firestore (Kotlin)
+    implementation 'com.google.firebase:firebase-firestore-ktx'
 
     // Firebase Authentication (Java)
     implementation 'com.google.firebase:firebase-auth'

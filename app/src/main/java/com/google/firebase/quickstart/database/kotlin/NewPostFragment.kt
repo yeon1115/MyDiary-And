@@ -14,6 +14,8 @@ import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.quickstart.database.R
 import com.google.firebase.quickstart.database.databinding.FragmentNewPostBinding
@@ -25,6 +27,8 @@ class NewPostFragment : BaseFragment() {
     private val binding get() = _binding!!
 
     private lateinit var database: DatabaseReference
+    private lateinit var firestore: FirebaseFirestore
+    //lateinit var query: Query
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentNewPostBinding.inflate(inflater, container, false)
@@ -35,6 +39,7 @@ class NewPostFragment : BaseFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         database = Firebase.database.reference
+        firestore = Firebase.firestore
 
         binding.fabSubmitPost.setOnClickListener { submitPost() }
     }
@@ -117,8 +122,41 @@ class NewPostFragment : BaseFragment() {
                 "/user-posts/$userId/$key" to postValues
         )
 
-        database.updateChildren(childUpdates)
+        //database.updateChildren(childUpdates)
+
+
+
+
+
+        val batch = firestore.batch()
+        val postsRef = firestore.collection("posts").document()
+        batch.set(postsRef, postValues)
+        batch.commit().addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                Log.d(TAG, "Write postsRef succeeded.")
+                Log.d(TAG, "postsRef.id: "+postsRef.id)
+                writeUserPost(postValues, postsRef.id)
+            } else {
+                Log.w(TAG, "write postsRef failed.", task.exception)
+            }
+        }
     }
+
+    private fun writeUserPost(postValues :Map<String, Any?>, postKey: String){
+        val batch = firestore.batch()
+        val users = firestore.collection("users").document(uid)
+        val user_posts = users.collection("posts").document(postKey)
+
+        batch.set(user_posts, postValues)
+        batch.commit().addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                Log.d(TAG, "Write user_posts succeeded.")
+            } else {
+                Log.w(TAG, "write user_posts failed.", task.exception)
+            }
+        }
+    }
+
 
     override fun onDestroy() {
         super.onDestroy()
