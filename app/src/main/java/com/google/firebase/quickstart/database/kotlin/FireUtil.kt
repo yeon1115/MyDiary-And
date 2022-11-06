@@ -7,21 +7,23 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.quickstart.database.kotlin.models.Post
+import com.google.firebase.quickstart.database.kotlin.models.User
 
 object FireUtil {
-    private const val TAG = "FireUtil"
+    const val TAG = "FireUtil"
     private lateinit var firestore: FirebaseFirestore
     private lateinit var query: Query
     private lateinit var uid: String
 
     fun init(){
         firestore = Firebase.firestore
-        uid = Firebase.auth.currentUser!!.uid
+        uid = Firebase.auth.currentUser?.uid.toString()
     }
 
-    fun getPostsQuery(){
+    fun getPostsQuery(): Query{
         query = firestore.collection("posts")
             .limit(50)
+        return query
     }
 
     /*
@@ -60,11 +62,24 @@ object FireUtil {
         }
     */
 
+    fun writeNewUser(userId: String, name: String, email: String?) {
+        val user = User(name, email)
+
+        val batch = firestore.batch()
+        val users = firestore.collection("users").document(userId)
+        batch.set(users, user)
+        batch.commit().addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                Log.d(TAG, "writeNewUser succeeded.")
+            } else {
+                Log.w(TAG, "writeNewUser failed.", task.exception)
+            }
+        }
+    }
 
 
-
-    private fun writeNewPost(userId: String, username: String, title: String, body: String) {
-        val post = Post(userId, username, title, body)
+    fun writeNewPost(username: String, title: String, body: String) {
+        val post = Post(uid, username, title, body)
         val postValues = post.toMap()
 
         val batch = firestore.batch()
@@ -85,6 +100,7 @@ object FireUtil {
         val batch = firestore.batch()
         val users = firestore.collection("users").document(uid)
         val user_posts = users.collection("posts").document(postKey)
+        val user_username = users.collection("username").document(postKey)
 
         batch.set(user_posts, postValues)
         batch.commit().addOnCompleteListener { task ->

@@ -35,6 +35,7 @@ class SignInFragment : BaseFragment() {
 
         database = Firebase.database.reference
         auth = Firebase.auth
+        FireUtil.init()
 
         setProgressBar(R.id.progressBar)
 
@@ -107,6 +108,7 @@ class SignInFragment : BaseFragment() {
 
         // Write new user
         writeNewUser(user.uid, username, user.email)
+        FireUtil.writeNewUser(user.uid, username, user.email)
 
         // Go to MainFragment
         findNavController().navigate(R.id.action_SignInFragment_to_MainFragment)

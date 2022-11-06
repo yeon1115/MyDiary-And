@@ -60,6 +60,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-auth-ktx'
 
     implementation 'com.firebaseui:firebase-ui-database:8.0.1'
+    implementation 'com.firebaseui:firebase-ui-firestore:8.0.1'
 
     // Needed to fix a dependency conflict with FirebaseUI'
     implementation 'androidx.arch.core:core-runtime:2.1.0'

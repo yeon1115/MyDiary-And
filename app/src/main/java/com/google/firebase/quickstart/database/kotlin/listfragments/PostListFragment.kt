@@ -5,6 +5,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.NonNull
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.navigation.findNavController
@@ -12,6 +13,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.firebase.ui.database.FirebaseRecyclerAdapter
 import com.firebase.ui.database.FirebaseRecyclerOptions
+import com.firebase.ui.firestore.FirestoreRecyclerAdapter
+import com.firebase.ui.firestore.FirestoreRecyclerOptions
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -22,6 +25,7 @@ import com.google.firebase.database.Transaction
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.quickstart.database.R
+import com.google.firebase.quickstart.database.kotlin.FireUtil
 import com.google.firebase.quickstart.database.kotlin.PostDetailFragment
 import com.google.firebase.quickstart.database.kotlin.models.Post
 import com.google.firebase.quickstart.database.kotlin.viewholder.PostViewHolder
@@ -35,6 +39,7 @@ abstract class PostListFragment : Fragment() {
     private lateinit var recycler: RecyclerView
     private lateinit var manager: LinearLayoutManager
     private var adapter: FirebaseRecyclerAdapter<Post, PostViewHolder>? = null
+    private var adapter2: FirestoreRecyclerAdapter<Post, PostViewHolder>? = null
 
     val uid: String
         get() = Firebase.auth.currentUser!!.uid
@@ -48,6 +53,7 @@ abstract class PostListFragment : Fragment() {
         val rootView = inflater.inflate(R.layout.fragment_all_posts, container, false)
 
         // [START create_database_reference]
+        FireUtil.init()
         database = Firebase.database.reference
         // [END create_database_reference]
 
@@ -67,12 +73,21 @@ abstract class PostListFragment : Fragment() {
         recycler.layoutManager = manager
 
         // Set up FirebaseRecyclerAdapter with the Query
-        val postsQuery = getQuery(database)
+//        val postsQuery = getQuery(database)
+//        val options = FirebaseRecyclerOptions.Builder<Post>()
+//                .setQuery(postsQuery, Post::class.java)
+//                .build()
+//        initFirebaseRecyclerAdapter(options)
+//        recycler.adapter = adapter
 
-        val options = FirebaseRecyclerOptions.Builder<Post>()
-                .setQuery(postsQuery, Post::class.java)
-                .build()
+        val options2 = FirestoreRecyclerOptions.Builder<Post>()
+            .setQuery(FireUtil.getPostsQuery(), Post::class.java)
+            .build()
+        initFirestoreRecyclerAdapter(options2)
+        recycler.adapter = adapter2
+    }
 
+    private fun initFirebaseRecyclerAdapter(@NonNull options: FirebaseRecyclerOptions<Post>){
         adapter = object : FirebaseRecyclerAdapter<Post, PostViewHolder>(options) {
 
             override fun onCreateViewHolder(viewGroup: ViewGroup, i: Int): PostViewHolder {
@@ -107,7 +122,25 @@ abstract class PostListFragment : Fragment() {
                 }
             }
         }
-        recycler.adapter = adapter
+    }
+
+    private fun initFirestoreRecyclerAdapter(@NonNull options: FirestoreRecyclerOptions<Post>){
+        adapter2 = object : FirestoreRecyclerAdapter<Post, PostViewHolder>(options) {
+
+            override fun onCreateViewHolder(viewGroup: ViewGroup, i: Int): PostViewHolder {
+                val inflater = LayoutInflater.from(viewGroup.context)
+                return PostViewHolder(inflater.inflate(R.layout.item_post, viewGroup, false))
+            }
+
+            override fun onBindViewHolder(viewHolder: PostViewHolder, position: Int, model: Post) {
+                Log.d(FireUtil.TAG, "onBindViewHolder title: "+model.title)
+                Log.d(FireUtil.TAG, "onBindViewHolder body: "+model.body)
+                viewHolder.bindToPost(model){
+
+                }
+            }
+        }
+        adapter2?.startListening()
     }
 
     // [START post_stars_transaction]

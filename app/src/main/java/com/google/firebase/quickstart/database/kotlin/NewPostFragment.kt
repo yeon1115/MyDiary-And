@@ -40,6 +40,7 @@ class NewPostFragment : BaseFragment() {
 
         database = Firebase.database.reference
         firestore = Firebase.firestore
+        FireUtil.init()
 
         binding.fabSubmitPost.setOnClickListener { submitPost() }
     }
@@ -79,7 +80,8 @@ class NewPostFragment : BaseFragment() {
                                     Toast.LENGTH_SHORT).show()
                         } else {
                             // Write new post
-                            writeNewPost(userId, user.username.toString(), title, body)
+                            //writeNewPost(userId, user.username.toString(), title, body)
+                            FireUtil.writeNewPost(user.username.toString(), title, body)
                         }
 
                         setEditingEnabled(true)
@@ -108,53 +110,20 @@ class NewPostFragment : BaseFragment() {
     private fun writeNewPost(userId: String, username: String, title: String, body: String) {
         // Create new post at /user-posts/$userid/$postid and at
         // /posts/$postid simultaneously
-        val key = database.child("posts").push().key
-        if (key == null) {
-            Log.w(TAG, "Couldn't get push key for posts")
-            return
-        }
-
-        val post = Post(userId, username, title, body)
-        val postValues = post.toMap()
-
-        val childUpdates = hashMapOf<String, Any>(
-                "/posts/$key" to postValues,
-                "/user-posts/$userId/$key" to postValues
-        )
-
+//        val key = database.child("posts").push().key
+//        if (key == null) {
+//            Log.w(TAG, "Couldn't get push key for posts")
+//            return
+//        }
+//
+//        val post = Post(userId, username, title, body)
+//        val postValues = post.toMap()
+//
+//        val childUpdates = hashMapOf<String, Any>(
+//                "/posts/$key" to postValues,
+//                "/user-posts/$userId/$key" to postValues
+//        )
         //database.updateChildren(childUpdates)
-
-
-
-
-
-        val batch = firestore.batch()
-        val postsRef = firestore.collection("posts").document()
-        batch.set(postsRef, postValues)
-        batch.commit().addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                Log.d(TAG, "Write postsRef succeeded.")
-                Log.d(TAG, "postsRef.id: "+postsRef.id)
-                writeUserPost(postValues, postsRef.id)
-            } else {
-                Log.w(TAG, "write postsRef failed.", task.exception)
-            }
-        }
-    }
-
-    private fun writeUserPost(postValues :Map<String, Any?>, postKey: String){
-        val batch = firestore.batch()
-        val users = firestore.collection("users").document(uid)
-        val user_posts = users.collection("posts").document(postKey)
-
-        batch.set(user_posts, postValues)
-        batch.commit().addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                Log.d(TAG, "Write user_posts succeeded.")
-            } else {
-                Log.w(TAG, "write user_posts failed.", task.exception)
-            }
-        }
     }
 
 
