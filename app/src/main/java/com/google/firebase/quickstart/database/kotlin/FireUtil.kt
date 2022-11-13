@@ -11,6 +11,8 @@ import com.google.firebase.quickstart.database.kotlin.models.User
 
 object FireUtil {
     const val TAG = "FireUtil"
+    const val USERS = "users"
+    const val POSTS = "posts"
     private lateinit var firestore: FirebaseFirestore
     private lateinit var query: Query
     private lateinit var uid: String
@@ -66,7 +68,7 @@ object FireUtil {
         val user = User(name, email)
 
         val batch = firestore.batch()
-        val users = firestore.collection("users").document(userId)
+        val users = firestore.collection(FireUtil.USERS).document(userId)
         batch.set(users, user)
         batch.commit().addOnCompleteListener { task ->
             if (task.isSuccessful) {
@@ -80,15 +82,18 @@ object FireUtil {
 
     fun writeNewPost(username: String, title: String, body: String) {
         val post = Post(uid, username, title, body)
-        val postValues = post.toMap()
 
         val batch = firestore.batch()
         val postsRef = firestore.collection("posts").document()
+
+        post.id = postsRef.id
+        Log.d(TAG, "Write Before postsRef.id: "+postsRef.id)
+        val postValues = post.toMap()
         batch.set(postsRef, postValues)
         batch.commit().addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 Log.d(TAG, "Write postsRef succeeded.")
-                Log.d(TAG, "postsRef.id: "+postsRef.id)
+                Log.d(TAG, "Write After postsRef.id: "+postsRef.id)
                 writeUserPost(postValues, postsRef.id)
             } else {
                 Log.w(TAG, "write postsRef failed.", task.exception)
@@ -98,7 +103,7 @@ object FireUtil {
 
     private fun writeUserPost(postValues :Map<String, Any?>, postKey: String){
         val batch = firestore.batch()
-        val users = firestore.collection("users").document(uid)
+        val users = firestore.collection(FireUtil.USERS).document(uid)
         val user_posts = users.collection("posts").document(postKey)
         val user_username = users.collection("username").document(postKey)
 
