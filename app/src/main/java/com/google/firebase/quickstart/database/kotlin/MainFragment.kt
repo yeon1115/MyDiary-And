@@ -1,6 +1,7 @@
 package com.google.firebase.quickstart.database.kotlin
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -34,8 +35,15 @@ class MainFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setHasOptionsMenu(true)
 
+        // https://achiven.tistory.com/1175584361
+        Log.d(FireUtil.TAG, "MainFragment.onViewCreated")
+        Log.d(FireUtil.TAG, "savedInstanceState: "+savedInstanceState)
+
         // Create the adapter that will return a fragment for each section
-        pagerAdapter = object : FragmentStateAdapter(parentFragmentManager, viewLifecycleOwner.lifecycle) {
+        // Fix parentFragmentManager => childFragmentManager
+        // Because Crash java.lang.IllegalStateException: FragmentManager is already executing transactions
+        // https://stackoverflow.com/questions/38722325/fragmentmanager-is-already-executing-transactions-when-is-it-safe-to-initialise
+        pagerAdapter = object : FragmentStateAdapter(childFragmentManager, viewLifecycleOwner.lifecycle) {
             private val fragments = arrayOf<Fragment>(
                     RecentPostsFragment(),
                     MyPostsFragment(),
