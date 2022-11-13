@@ -87,42 +87,42 @@ abstract class PostListFragment : Fragment() {
         recycler.adapter = adapter2
     }
 
-    private fun initFirebaseRecyclerAdapter(@NonNull options: FirebaseRecyclerOptions<Post>){
-        adapter = object : FirebaseRecyclerAdapter<Post, PostViewHolder>(options) {
-
-            override fun onCreateViewHolder(viewGroup: ViewGroup, i: Int): PostViewHolder {
-                val inflater = LayoutInflater.from(viewGroup.context)
-                return PostViewHolder(inflater.inflate(R.layout.item_post, viewGroup, false))
-            }
-
-            override fun onBindViewHolder(viewHolder: PostViewHolder, position: Int, model: Post) {
-                val postRef = getRef(position)
-
-                // Set click listener for the whole post view
-                val postKey = postRef.key
-                viewHolder.itemView.setOnClickListener {
-                    // Launch PostDetailFragment
-                    val navController = requireActivity().findNavController(R.id.nav_host_fragment)
-                    val args = bundleOf(PostDetailFragment.EXTRA_POST_KEY to postKey)
-                    navController.navigate(R.id.action_MainFragment_to_PostDetailFragment, args)
-                }
-
-                // Determine if the current user has liked this post and set UI accordingly
-                viewHolder.setLikedState(model.stars.containsKey(uid))
-
-                // Bind Post to ViewHolder, setting OnClickListener for the star button
-                viewHolder.bindToPost(model) {
-                    // Need to write to both places the post is stored
-                    val globalPostRef = database.child("posts").child(postRef.key!!)
-                    val userPostRef = database.child("user-posts").child(model.uid!!).child(postRef.key!!)
-
-                    // Run two transactions
-                    onStarClicked(globalPostRef)
-                    onStarClicked(userPostRef)
-                }
-            }
-        }
-    }
+//    private fun initFirebaseRecyclerAdapter(@NonNull options: FirebaseRecyclerOptions<Post>){
+//        adapter = object : FirebaseRecyclerAdapter<Post, PostViewHolder>(options) {
+//
+//            override fun onCreateViewHolder(viewGroup: ViewGroup, i: Int): PostViewHolder {
+//                val inflater = LayoutInflater.from(viewGroup.context)
+//                return PostViewHolder(inflater.inflate(R.layout.item_post, viewGroup, false))
+//            }
+//
+//            override fun onBindViewHolder(viewHolder: PostViewHolder, position: Int, model: Post) {
+//                val postRef = getRef(position)
+//
+//                // Set click listener for the whole post view
+//                val postKey = postRef.key
+//                viewHolder.itemView.setOnClickListener {
+//                    // Launch PostDetailFragment
+//                    val navController = requireActivity().findNavController(R.id.nav_host_fragment)
+//                    val args = bundleOf(PostDetailFragment.EXTRA_POST_KEY to postKey)
+//                    navController.navigate(R.id.action_MainFragment_to_PostDetailFragment, args)
+//                }
+//
+//                // Determine if the current user has liked this post and set UI accordingly
+//                viewHolder.setLikedState(model.stars.containsKey(uid))
+//
+//                // Bind Post to ViewHolder, setting OnClickListener for the star button
+//                viewHolder.bindToPost(model) {
+//                    // Need to write to both places the post is stored
+//                    val globalPostRef = database.child(FireUtil.USERS).child(postRef.key!!)
+//                    val userPostRef = database.child("user-posts").child(model.uid!!).child(postRef.key!!)
+//
+//                    // Run two transactions
+//                    onStarClicked(globalPostRef)
+//                    onStarClicked(userPostRef)
+//                }
+//            }
+//        }
+//    }
 
     private fun initFirestoreRecyclerAdapter(@NonNull options: FirestoreRecyclerOptions<Post>){
         adapter2 = object : FirestoreRecyclerAdapter<Post, PostViewHolder>(options) {
@@ -135,6 +135,18 @@ abstract class PostListFragment : Fragment() {
             override fun onBindViewHolder(viewHolder: PostViewHolder, position: Int, model: Post) {
                 Log.d(FireUtil.TAG, "onBindViewHolder title: "+model.title)
                 Log.d(FireUtil.TAG, "onBindViewHolder body: "+model.body)
+                val postRef = getItem(position)
+
+
+                // Set click listener for the whole post view
+                val postKey = postRef.id
+                viewHolder.itemView.setOnClickListener {
+                    // Launch PostDetailFragment
+                    val navController = requireActivity().findNavController(R.id.nav_host_fragment)
+                    val args = bundleOf(PostDetailFragment.EXTRA_POST_KEY to postKey)
+                    navController.navigate(R.id.action_MainFragment_to_PostDetailFragment, args)
+                }
+
                 viewHolder.bindToPost(model){
 
                 }

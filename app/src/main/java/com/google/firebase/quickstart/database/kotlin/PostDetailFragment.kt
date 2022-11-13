@@ -16,6 +16,9 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
 import com.google.firebase.database.ktx.getValue
+import com.google.firebase.firestore.*
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.firestore.ktx.toObject
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.quickstart.database.R
 import com.google.firebase.quickstart.database.databinding.FragmentPostDetailBinding
@@ -26,13 +29,13 @@ import com.google.firebase.quickstart.database.kotlin.viewholder.CommentViewHold
 import java.lang.IllegalArgumentException
 import java.util.ArrayList
 
-class PostDetailFragment : BaseFragment() {
+class PostDetailFragment : BaseFragment(), EventListener<DocumentSnapshot> {
 
     private lateinit var postKey: String
-    private lateinit var postReference: DatabaseReference
-    private lateinit var commentsReference: DatabaseReference
+    private lateinit var firestore: FirebaseFirestore
+    private lateinit var restaurantRef: DocumentReference
+    private var restaurantRegistration: ListenerRegistration? = null
 
-    private var postListener: ValueEventListener? = null
     private var adapter: CommentAdapter? = null
 
     private var _binding: FragmentPostDetailBinding? = null
@@ -50,90 +53,79 @@ class PostDetailFragment : BaseFragment() {
         postKey = requireArguments().getString(EXTRA_POST_KEY)
                 ?: throw IllegalArgumentException("Must pass EXTRA_POST_KEY")
 
-        // Initialize Database
-        postReference = Firebase.database.reference
-                .child("posts").child(postKey)
-        commentsReference = Firebase.database.reference
-                .child("post-comments").child(postKey)
+        Log.d(TAG, "postKey: "+postKey)
+
+        // Initialize Firestore
+        firestore = Firebase.firestore
+
+        // Get reference to the restaurant
+        restaurantRef = firestore.collection("posts").document(postKey)
 
         // Initialize Views
         with(binding) {
-            buttonPostComment.setOnClickListener { postComment() }
+            buttonPostComment.setOnClickListener { //postComment()
+            }
             recyclerPostComments.layoutManager = LinearLayoutManager(context)
         }
     }
 
     override fun onStart() {
         super.onStart()
+        restaurantRegistration = restaurantRef.addSnapshotListener(this)
+//        restaurantRef.get()
+//            .addOnSuccessListener { document ->
+//                if (document != null) {
+//                    Log.d(TAG, "DocumentSnapshot data: ${document.data}")
+//                    val post = document.data
+//                    Log.d(TAG, "addOnSuccessListener => post: "+post)
+//
+//                } else {
+//                    Log.d(TAG, "No such document")
+//                }
+//            }
+//            .addOnFailureListener { exception ->
+//                Log.d(TAG, "get failed with ", exception)
+//            }
 
-        // Add value event listener to the post
-        val postListener = object : ValueEventListener {
-            override fun onDataChange(dataSnapshot: DataSnapshot) {
-                // Get Post object and use the values to update the UI
-                val post = dataSnapshot.getValue<Post>()
-                post?.let {
-                    binding.postAuthorLayout.postAuthor.text = it.author
-                    with(binding.postTextLayout) {
-                        postTitle.text = it.title
-                        postBody.text = it.body
-                    }
-                }
-            }
-
-            override fun onCancelled(databaseError: DatabaseError) {
-                // Getting Post failed, log a message
-                Log.w(TAG, "loadPost:onCancelled", databaseError.toException())
-                Toast.makeText(context, "Failed to load post.",
-                        Toast.LENGTH_SHORT).show()
-            }
-        }
-        postReference.addValueEventListener(postListener)
-
-        // Keep copy of post listener so we can remove it when app stops
-        this.postListener = postListener
-
-        // Listen for comments
-        adapter = CommentAdapter(requireContext(), commentsReference)
-        binding.recyclerPostComments.adapter = adapter
+//        // Listen for comments
+//        adapter = CommentAdapter(requireContext(), commentsReference)
+//        binding.recyclerPostComments.adapter = adapter
     }
 
     override fun onStop() {
         super.onStop()
+        restaurantRegistration?.remove()
+        restaurantRegistration = null
 
-        // Remove post value event listener
-        postListener?.let {
-            postReference.removeEventListener(it)
-        }
-
-        // Clean up comments listener
-        adapter?.cleanupListener()
+//        // Clean up comments listener
+//        adapter?.cleanupListener()
     }
 
-    private fun postComment() {
-        val uid = uid
-        Firebase.database.reference.child("users").child(uid)
-                .addListenerForSingleValueEvent(object : ValueEventListener {
-                    override fun onDataChange(dataSnapshot: DataSnapshot) {
-                        // Get user information
-                        val user = dataSnapshot.getValue<User>() ?: return
-
-                        val authorName = user.username
-
-                        // Create new comment object
-                        val commentText = binding.fieldCommentText.text.toString()
-                        val comment = Comment(uid, authorName, commentText)
-
-                        // Push the comment, it will appear in the list
-                        commentsReference.push().setValue(comment)
-
-                        // Clear the field
-                        binding.fieldCommentText.text = null
-                    }
-
-                    override fun onCancelled(databaseError: DatabaseError) {
-                    }
-                })
-    }
+//    private fun postComment() {
+//        val uid = uid
+//        Firebase.database.reference.child(FireUtil.USERS).child(uid)
+//                .addListenerForSingleValueEvent(object : ValueEventListener {
+//                    override fun onDataChange(dataSnapshot: DataSnapshot) {
+//                        // Get user information
+//                        val user = dataSnapshot.getValue<User>() ?: return
+//
+//                        val authorName = user.username
+//
+//                        // Create new comment object
+//                        val commentText = binding.fieldCommentText.text.toString()
+//                        val comment = Comment(uid, authorName, commentText)
+//
+//                        // Push the comment, it will appear in the list
+//                        commentsReference.push().setValue(comment)
+//
+//                        // Clear the field
+//                        binding.fieldCommentText.text = null
+//                    }
+//
+//                    override fun onCancelled(databaseError: DatabaseError) {
+//                    }
+//                })
+//    }
 
     private class CommentAdapter(
             private val context: Context,
@@ -249,7 +241,32 @@ class PostDetailFragment : BaseFragment() {
     }
 
     companion object {
-        private const val TAG = "PostDetailFragment"
+        private const val TAG = "FireUtil"
         const val EXTRA_POST_KEY = "post_key"
+    }
+
+    override fun onEvent(snapshot: DocumentSnapshot?, e: FirebaseFirestoreException?) {
+
+        if (e != null) {
+            Log.w(TAG, "restaurant:onEvent", e)
+            return
+        }
+
+        snapshot?.let {
+            val post = snapshot.toObject<Post>()
+            Log.d(TAG, "onEvent => post: "+post)
+            post?.let { it1 -> loadPostDetails(it1) }
+        }
+    }
+
+    private fun loadPostDetails(post: Post){
+        if (post != null) {
+            binding.postAuthorLayout.postAuthor.text = post.author
+            with(binding.postTextLayout) {
+                Log.d(TAG, "onEvent => setText: ")
+                postTitle.text = post.title
+                postBody.text = post.body
+            }
+        }
     }
 }

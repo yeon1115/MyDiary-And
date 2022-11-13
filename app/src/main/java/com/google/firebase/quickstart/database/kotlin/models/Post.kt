@@ -14,9 +14,12 @@ data class Post(
     var stars: MutableMap<String, Boolean> = HashMap()
 ) {
 
+    var id: String? = ""
+
     @Exclude
     fun toMap(): Map<String, Any?> {
         return mapOf(
+                "id" to id,
                 "uid" to uid,
                 "author" to author,
                 "title" to title,

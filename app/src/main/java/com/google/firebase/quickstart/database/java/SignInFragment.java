@@ -24,6 +24,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.quickstart.database.R;
 import com.google.firebase.quickstart.database.databinding.FragmentSignInBinding;
 import com.google.firebase.quickstart.database.java.models.User;
+import com.google.firebase.quickstart.database.kotlin.FireUtil;
 
 public class SignInFragment extends BaseFragment implements View.OnClickListener {
 
@@ -159,7 +160,7 @@ public class SignInFragment extends BaseFragment implements View.OnClickListener
     private void writeNewUser(String userId, String name, String email) {
         User user = new User(name, email);
 
-        mDatabase.child("users").child(userId).setValue(user);
+        mDatabase.child(FireUtil.USERS).child(userId).setValue(user);
     }
 
     public void onClick(View v) {

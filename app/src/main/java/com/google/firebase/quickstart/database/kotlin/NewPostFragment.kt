@@ -66,7 +66,7 @@ class NewPostFragment : BaseFragment() {
         Toast.makeText(context, "Posting...", Toast.LENGTH_SHORT).show()
 
         val userId = uid
-        database.child("users").child(userId).addListenerForSingleValueEvent(
+        database.child(FireUtil.USERS).child(userId).addListenerForSingleValueEvent(
                 object : ValueEventListener {
                     override fun onDataChange(dataSnapshot: DataSnapshot) {
                         // Get user value
