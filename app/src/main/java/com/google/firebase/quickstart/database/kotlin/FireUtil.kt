@@ -23,7 +23,7 @@ object FireUtil {
     }
 
     fun getPostsQuery(): Query{
-        query = firestore.collection("posts")
+        query = firestore.collection(FireUtil.POSTS)
             .limit(50)
         return query
     }
@@ -84,7 +84,7 @@ object FireUtil {
         val post = Post(uid, username, title, body)
 
         val batch = firestore.batch()
-        val postsRef = firestore.collection("posts").document()
+        val postsRef = firestore.collection(FireUtil.POSTS).document()
 
         post.id = postsRef.id
         Log.d(TAG, "Write Before postsRef.id: "+postsRef.id)
@@ -104,7 +104,7 @@ object FireUtil {
     private fun writeUserPost(postValues :Map<String, Any?>, postKey: String){
         val batch = firestore.batch()
         val users = firestore.collection(FireUtil.USERS).document(uid)
-        val user_posts = users.collection("posts").document(postKey)
+        val user_posts = users.collection(FireUtil.POSTS).document(postKey)
         val user_username = users.collection("username").document(postKey)
 
         batch.set(user_posts, postValues)

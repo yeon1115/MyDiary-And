@@ -110,7 +110,7 @@ class NewPostFragment : BaseFragment() {
     private fun writeNewPost(userId: String, username: String, title: String, body: String) {
         // Create new post at /user-posts/$userid/$postid and at
         // /posts/$postid simultaneously
-//        val key = database.child("posts").push().key
+//        val key = database.child(FireUtil.POSTS).push().key
 //        if (key == null) {
 //            Log.w(TAG, "Couldn't get push key for posts")
 //            return

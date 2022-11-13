@@ -59,7 +59,7 @@ class PostDetailFragment : BaseFragment(), EventListener<DocumentSnapshot> {
         firestore = Firebase.firestore
 
         // Get reference to the restaurant
-        restaurantRef = firestore.collection("posts").document(postKey)
+        restaurantRef = firestore.collection(FireUtil.POSTS).document(postKey)
 
         // Initialize Views
         with(binding) {
