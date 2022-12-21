@@ -8,6 +8,7 @@ import android.widget.TextView;
 import com.google.firebase.quickstart.database.R;
 import com.google.firebase.quickstart.database.java.models.Post;
 
+@Deprecated
 public class PostViewHolder extends RecyclerView.ViewHolder {
 
     public TextView titleView;

@@ -22,6 +22,7 @@ import com.google.firebase.quickstart.database.java.listfragments.MyPostsFragmen
 import com.google.firebase.quickstart.database.java.listfragments.MyTopPostsFragment;
 import com.google.firebase.quickstart.database.java.listfragments.RecentPostsFragment;
 
+@Deprecated
 public class MainFragment extends Fragment {
 
     private FragmentMainBinding binding;

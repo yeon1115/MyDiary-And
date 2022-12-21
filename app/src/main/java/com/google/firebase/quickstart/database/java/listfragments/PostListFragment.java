@@ -27,6 +27,7 @@ import com.google.firebase.quickstart.database.java.PostDetailFragment;
 import com.google.firebase.quickstart.database.java.models.Post;
 import com.google.firebase.quickstart.database.java.viewholder.PostViewHolder;
 
+@Deprecated
 public abstract class PostListFragment extends Fragment {
 
     private static final String TAG = "PostListFragment";

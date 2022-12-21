@@ -30,6 +30,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.quickstart.database.R;
 import com.google.firebase.quickstart.database.databinding.ActivityMainBinding;
 
+@Deprecated
 public class  MainActivity extends AppCompatActivity {
 
     private FloatingActionButton fab;

@@ -25,6 +25,7 @@ import com.google.firebase.quickstart.database.java.models.User;
 import java.util.HashMap;
 import java.util.Map;
 
+@Deprecated
 public class NewPostFragment extends BaseFragment {
     private static final String TAG = "NewPostFragment";
     private static final String REQUIRED = "Required";

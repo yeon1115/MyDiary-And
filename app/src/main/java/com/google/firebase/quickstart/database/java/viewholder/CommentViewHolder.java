@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.quickstart.database.R;
 
+@Deprecated
 public class CommentViewHolder extends RecyclerView.ViewHolder {
     public TextView authorView;
     public TextView bodyView;

@@ -7,6 +7,7 @@ import androidx.fragment.app.Fragment;
 
 import com.google.firebase.auth.FirebaseAuth;
 
+@Deprecated
 public class BaseFragment extends Fragment {
     private ProgressBar mProgressBar;
 

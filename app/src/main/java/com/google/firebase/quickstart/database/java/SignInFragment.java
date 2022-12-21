@@ -26,6 +26,7 @@ import com.google.firebase.quickstart.database.databinding.FragmentSignInBinding
 import com.google.firebase.quickstart.database.java.models.User;
 import com.google.firebase.quickstart.database.kotlin.FireUtil;
 
+@Deprecated
 public class SignInFragment extends BaseFragment implements View.OnClickListener {
 
     private static final String TAG = "SignInFragment";

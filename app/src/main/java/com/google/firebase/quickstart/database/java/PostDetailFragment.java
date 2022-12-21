@@ -29,6 +29,7 @@ import com.google.firebase.quickstart.database.java.viewholder.CommentViewHolder
 import java.util.ArrayList;
 import java.util.List;
 
+@Deprecated
 public class PostDetailFragment extends BaseFragment {
 
     private static final String TAG = "PostDetailFragment";
