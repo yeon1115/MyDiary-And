@@ -17,18 +17,23 @@ import com.google.firebase.database.ktx.getValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.quickstart.database.ActivityHelper
 import com.google.firebase.quickstart.database.R
+import com.google.firebase.quickstart.database.cropper.SampleCropImageActivity
 import com.google.firebase.quickstart.database.databinding.FragmentNewPostBinding
 import com.google.firebase.quickstart.database.kotlin.models.Post
 import com.google.firebase.quickstart.database.kotlin.models.User
+import com.google.firebase.quickstart.database.utils.CommonPermissionsUtil
 
-class NewPostFragment : BaseFragment() {
+class NewPostFragment : BaseFragment(), ActivityHelper.ActivityResultListener {
     private var _binding: FragmentNewPostBinding? = null
     private val binding get() = _binding!!
 
     private lateinit var database: DatabaseReference
     private lateinit var firestore: FirebaseFirestore
     //lateinit var query: Query
+    private var imagePath: String? = null
+    private lateinit var activityHelper: ActivityHelper
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         _binding = FragmentNewPostBinding.inflate(inflater, container, false)
@@ -42,7 +47,22 @@ class NewPostFragment : BaseFragment() {
         firestore = Firebase.firestore
         FireUtil.init()
 
+        if (arguments != null) {
+            activityHelper = arguments?.getParcelable("ActivityHelper")!!
+            activityHelper.setActivityResultListener(this)
+            Log.d(FireUtil.TAG, "activityHelper: "+activityHelper)
+        }
+
         binding.fabSubmitPost.setOnClickListener { submitPost() }
+
+        if(CommonPermissionsUtil.hasStoragePermissions(context)) {
+            activity?.let { SampleCropImageActivity.start(it) }
+
+        }else{
+            if(!CommonPermissionsUtil.hasStoragePermissions(context))
+                CommonPermissionsUtil.showPermissionNotice(activity, CommonPermissionsUtil.permissions_read_storage)
+        }
+
     }
 
     private fun submitPost() {
@@ -82,7 +102,12 @@ class NewPostFragment : BaseFragment() {
                             // Write new post
                             //writeNewPost(userId, user.username.toString(), title, body)
                             val post = Post(uid, user.username.toString(), title, body)
-                            FireUtil.writeNewPost(post)
+
+                            if(imagePath!=null){
+                                FireUtil.writeNewPostWithImage(post, imagePath!!)
+                            }else{
+                                FireUtil.writeNewPost(post)
+                            }
                         }
 
                         setEditingEnabled(true)
@@ -136,5 +161,11 @@ class NewPostFragment : BaseFragment() {
     companion object {
         private const val TAG = "NewPostFragment"
         private const val REQUIRED = "Required"
+    }
+
+    override fun onActivityResult(chosenPhoto: String?) {
+        Log.d(FireUtil.TAG, "onActivityResult chosenPhoto: "+chosenPhoto)
+        this.imagePath = chosenPhoto
+        // ToDo
     }
 }

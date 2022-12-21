@@ -205,6 +205,8 @@ object FireUtil {
             isCompleteTask.value = true
             if(timeOut.value!!.equals(false)){
                 throwable.message?.let {
+                    Log.d(TAG, "uploadImageAtStorage failed.")
+                    Log.d(TAG, "throwable.message: "+throwable.message)
 
                 }
             }
@@ -212,6 +214,7 @@ object FireUtil {
             //onComplete
             isCompleteTask.value = true
             if(timeOut.value!!.equals(false)){
+                Log.d(TAG, "uploadImageAtStorage succeeded.")
                 post.photoUrl = downloadUrl
                 writeNewPost(post)
             }

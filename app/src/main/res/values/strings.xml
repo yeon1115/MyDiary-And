@@ -16,4 +16,10 @@
     <string name="heading_recent">Recent</string>
     <string name="heading_my_posts">My Posts</string>
     <string name="heading_my_top_posts">My Top Posts</string>
+    <string name="rotation_value">Click to change rotation: %1$s</string>
+    <string name="fui_button_text_save" translation_description="Button text to save input form">Save</string>
+    <string name="Storage_permission_deny_message"><![CDATA[Storage permission is required to load photos. Please allow storage space access in <b>Settings > App information > Permissions</b>.]]></string>
+    <string name="permission_notice_title">Permission below is required</string>
+    <string name="permission_title1">Storage (required)</string>
+    <string name="permission_text_photo">Upload photo</string>
 </resources>

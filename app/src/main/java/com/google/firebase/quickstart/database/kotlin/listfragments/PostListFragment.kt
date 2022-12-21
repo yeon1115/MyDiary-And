@@ -147,7 +147,7 @@ abstract class PostListFragment : Fragment() {
                     navController.navigate(R.id.action_MainFragment_to_PostDetailFragment, args)
                 }
 
-                viewHolder.bindToPost(model){
+                viewHolder.bindToPost(context!!, model){
 
                 }
             }

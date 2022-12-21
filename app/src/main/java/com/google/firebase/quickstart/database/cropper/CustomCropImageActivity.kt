@@ -1,0 +1,401 @@
+package com.google.firebase.quickstart.database.cropper
+
+import com.google.firebase.quickstart.database.R
+import android.content.Context
+import android.content.DialogInterface
+import android.content.Intent
+import android.graphics.drawable.Drawable
+import android.net.Uri
+import android.os.Bundle
+import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import androidx.core.graphics.BlendModeColorFilterCompat
+import androidx.core.graphics.BlendModeCompat
+import com.canhub.cropper.CropImage
+import com.canhub.cropper.CropImageOptions
+import com.canhub.cropper.CropImageView
+import com.canhub.cropper.CropImageView.CropResult
+import com.canhub.cropper.CropImageView.OnCropImageCompleteListener
+import com.canhub.cropper.CropImageView.OnSetImageUriCompleteListener
+import com.canhub.cropper.common.CommonValues
+import com.canhub.cropper.common.CommonVersionCheck
+import com.canhub.cropper.databinding.CropImageActivityBinding
+import java.io.*
+import java.nio.file.Files
+import java.nio.file.Paths
+
+open class CustomCropImageActivity :
+    AppCompatActivity(),
+    OnSetImageUriCompleteListener,
+    OnCropImageCompleteListener {
+
+    /**
+     * Persist URI image to crop URI if specific permissions are required
+     */
+    private var cropImageUri: Uri? = null
+
+    /**
+     * the options that were set for the crop image
+     */
+    private lateinit var cropImageOptions: CropImageOptions
+
+    /** The crop image view library widget used in the activity */
+    private var cropImageView: CropImageView? = null
+    private lateinit var binding: CropImageActivityBinding
+    private var latestTmpUri: Uri? = null
+    private val pickImageGallery =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            onPickImageResult(uri)
+        }
+    private val takePicture = registerForActivityResult(ActivityResultContracts.TakePicture()) {
+        if (it) onPickImageResult(latestTmpUri) else onPickImageResult(null)
+    }
+
+    public override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        binding = CropImageActivityBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        setCropImageView(binding.cropImageView)
+        val bundle = intent.getBundleExtra(CropImage.CROP_IMAGE_EXTRA_BUNDLE)
+        cropImageUri = bundle?.getParcelable(CropImage.CROP_IMAGE_EXTRA_SOURCE)
+        cropImageOptions =
+            bundle?.getParcelable(CropImage.CROP_IMAGE_EXTRA_OPTIONS) ?: CropImageOptions()
+
+        if (savedInstanceState == null) {
+            if (cropImageUri == null || cropImageUri == Uri.EMPTY) {
+                when {
+                    cropImageOptions.imageSourceIncludeGallery &&
+                            cropImageOptions.imageSourceIncludeCamera ->
+                        showImageSourceDialog(::openSource)
+                    cropImageOptions.imageSourceIncludeGallery ->
+                        pickImageGallery.launch("image/*")
+                    cropImageOptions.imageSourceIncludeCamera ->
+                        openCamera()
+                    else -> finish()
+                }
+            } else cropImageView?.setImageUriAsync(cropImageUri)
+        }
+
+        supportActionBar?.let {
+            title =
+                if (cropImageOptions.activityTitle.isNotEmpty())
+                    cropImageOptions.activityTitle
+                else
+                    resources.getString(R.string.crop_image_activity_title)
+            it.setDisplayHomeAsUpEnabled(true)
+        }
+    }
+
+    private fun openSource(source: Source) {
+        when (source) {
+            Source.CAMERA -> openCamera()
+            Source.GALLERY -> pickImageGallery.launch("image/*")
+        }
+    }
+
+    private fun openCamera() {
+        getTmpFileUri().let { uri ->
+            latestTmpUri = uri
+            takePicture.launch(uri)
+        }
+    }
+
+    private fun getTmpFileUri(): Uri {
+        val tmpFile = File.createTempFile("tmp_image_file", ".png", cacheDir).apply {
+            createNewFile()
+            deleteOnExit()
+        }
+
+        return getUriForFile(this, tmpFile)
+    }
+
+    /**
+     * This method show the dialog for user source choice, it is an open function so can be override
+     * and customised with the app layout if need.
+     */
+    open fun showImageSourceDialog(openSource: (Source) -> Unit) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.pick_image_chooser_title)
+            .setItems(
+                arrayOf(
+                    getString(R.string.pick_image_camera),
+                    getString(R.string.pick_image_gallery),
+                )
+            ) { _, position -> openSource(if (position == 0) Source.CAMERA else Source.GALLERY) }
+            .setOnCancelListener(DialogInterface.OnCancelListener {
+                finish()
+            })
+            .show()
+    }
+
+    public override fun onStart() {
+        super.onStart()
+        cropImageView?.setOnSetImageUriCompleteListener(this)
+        cropImageView?.setOnCropImageCompleteListener(this)
+    }
+
+    public override fun onStop() {
+        super.onStop()
+        cropImageView?.setOnSetImageUriCompleteListener(null)
+        cropImageView?.setOnCropImageCompleteListener(null)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.crop_image_menu, menu)
+
+        if (!cropImageOptions.allowRotation) {
+            menu.removeItem(R.id.ic_rotate_left_24)
+            menu.removeItem(R.id.ic_rotate_right_24)
+        } else if (cropImageOptions.allowCounterRotation) {
+            menu.findItem(R.id.ic_rotate_left_24).isVisible = true
+        }
+
+        if (!cropImageOptions.allowFlipping) menu.removeItem(R.id.ic_flip_24)
+
+        if (cropImageOptions.cropMenuCropButtonTitle != null) {
+            menu.findItem(R.id.crop_image_menu_crop).title =
+                cropImageOptions.cropMenuCropButtonTitle
+        }
+        var cropIcon: Drawable? = null
+        try {
+            if (cropImageOptions.cropMenuCropButtonIcon != 0) {
+                cropIcon = ContextCompat.getDrawable(this, cropImageOptions.cropMenuCropButtonIcon)
+                menu.findItem(R.id.crop_image_menu_crop).icon = cropIcon
+            }
+        } catch (e: Exception) {
+            Log.w("AIC", "Failed to read menu crop drawable", e)
+        }
+        if (cropImageOptions.activityMenuIconColor != 0) {
+            updateMenuItemIconColor(
+                menu,
+                R.id.ic_rotate_left_24,
+                cropImageOptions.activityMenuIconColor
+            )
+            updateMenuItemIconColor(
+                menu,
+                R.id.ic_rotate_right_24,
+                cropImageOptions.activityMenuIconColor
+            )
+            updateMenuItemIconColor(menu, R.id.ic_flip_24, cropImageOptions.activityMenuIconColor)
+
+            if (cropIcon != null) {
+                updateMenuItemIconColor(
+                    menu,
+                    R.id.crop_image_menu_crop,
+                    cropImageOptions.activityMenuIconColor
+                )
+            }
+        }
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.crop_image_menu_crop -> cropImage()
+            R.id.ic_rotate_left_24 -> rotateImage(-cropImageOptions.rotationDegrees)
+            R.id.ic_rotate_right_24 -> rotateImage(cropImageOptions.rotationDegrees)
+            R.id.ic_flip_24_horizontally -> cropImageView?.flipImageHorizontally()
+            R.id.ic_flip_24_vertically -> cropImageView?.flipImageVertically()
+            android.R.id.home -> setResultCancel()
+            else -> return super.onOptionsItemSelected(item)
+        }
+        return true
+    }
+
+    override fun onBackPressed() {
+        super.onBackPressed()
+        setResultCancel()
+    }
+
+    protected open fun onPickImageResult(resultUri: Uri?) {
+        when (resultUri) {
+            null -> setResultCancel()
+            else -> {
+                cropImageUri = resultUri
+                cropImageView?.setImageUriAsync(cropImageUri)
+            }
+        }
+    }
+
+    override fun onSetImageUriComplete(view: CropImageView, uri: Uri, error: Exception?) {
+        if (error == null) {
+            if (cropImageOptions.initialCropWindowRectangle != null)
+                cropImageView?.cropRect = cropImageOptions.initialCropWindowRectangle
+
+            if (cropImageOptions.initialRotation > 0)
+                cropImageView?.rotatedDegrees = cropImageOptions.initialRotation
+        } else setResult(null, error, 1)
+    }
+
+    override fun onCropImageComplete(view: CropImageView, result: CropResult) {
+        setResult(result.uriContent, result.error, result.sampleSize)
+    }
+
+    /**
+     * Execute crop image and save the result tou output uri.
+     */
+    open fun cropImage() {
+        if (cropImageOptions.noOutputImage) setResult(null, null, 1)
+        else cropImageView?.croppedImageAsync(
+            saveCompressFormat = cropImageOptions.outputCompressFormat,
+            saveCompressQuality = cropImageOptions.outputCompressQuality,
+            reqWidth = cropImageOptions.outputRequestWidth,
+            reqHeight = cropImageOptions.outputRequestHeight,
+            options = cropImageOptions.outputRequestSizeOptions,
+            customOutputUri = cropImageOptions.customOutputUri,
+        )
+    }
+
+    /**
+     * When extending this activity, please set your own ImageCropView
+     */
+    open fun setCropImageView(cropImageView: CropImageView) {
+        this.cropImageView = cropImageView
+    }
+
+    /**
+     * Rotate the image in the crop image view.
+     */
+    open fun rotateImage(degrees: Int) {
+        cropImageView?.rotateImage(degrees)
+    }
+
+    /**
+     * Result with cropped image data or error if failed.
+     */
+    open fun setResult(uri: Uri?, error: Exception?, sampleSize: Int) {
+        setResult(
+            error?.let { CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE } ?: RESULT_OK,
+            getResultIntent(uri, error, sampleSize)
+        )
+        finish()
+    }
+
+    /**
+     * Cancel of cropping activity.
+     */
+    open fun setResultCancel() {
+        setResult(RESULT_CANCELED)
+        finish()
+    }
+
+    /**
+     * Get intent instance to be used for the result of this activity.
+     */
+    open fun getResultIntent(uri: Uri?, error: Exception?, sampleSize: Int): Intent {
+        val result = CropImage.ActivityResult(
+            cropImageView?.imageUri,
+            uri,
+            error,
+            cropImageView?.cropPoints,
+            cropImageView?.cropRect,
+            cropImageView?.rotatedDegrees ?: 0,
+            cropImageView?.wholeImageRect,
+            sampleSize
+        )
+        val intent = Intent()
+        intent.putExtras(getIntent())
+        intent.putExtra(CropImage.CROP_IMAGE_EXTRA_RESULT, result)
+        return intent
+    }
+
+    /**
+     * Update the color of a specific menu item to the given color.
+     */
+    open fun updateMenuItemIconColor(menu: Menu, itemId: Int, color: Int) {
+        val menuItem = menu.findItem(itemId)
+        if (menuItem != null) {
+            val menuItemIcon = menuItem.icon
+            if (menuItemIcon != null) {
+                try {
+                    menuItemIcon.apply {
+                        mutate()
+                        colorFilter = BlendModeColorFilterCompat.createBlendModeColorFilterCompat(
+                            color,
+                            BlendModeCompat.SRC_ATOP
+                        )
+                    }
+                    menuItem.icon = menuItemIcon
+                } catch (e: Exception) {
+                    Log.w("AIC", "Failed to update menu item color", e)
+                }
+            }
+        }
+    }
+
+    enum class Source { CAMERA, GALLERY }
+
+    internal fun getUriForFile(context: Context, file: File): Uri {
+        val authority = context.packageName + CommonValues.authority
+        try {
+            Log.i("AIC", "Try get URI for scope storage - content://")
+            return FileProvider.getUriForFile(context, authority, file)
+        } catch (e: Exception) {
+            try {
+                Log.e("AIC", "${e.message}")
+                Log.w(
+                    "AIC",
+                    "ANR Risk -- Copying the file the location cache to avoid 'external-files-path' bug for N+ devices"
+                )
+                // Note: Periodically clear this cache
+                val cacheFolder = File(context.cacheDir, CommonValues.CROP_LIB_CACHE)
+                val cacheLocation = File(cacheFolder, file.name)
+                var input: InputStream? = null
+                var output: OutputStream? = null
+                try {
+                    input = FileInputStream(file)
+                    output = FileOutputStream(cacheLocation) // appending output stream
+                    input.copyTo(output)
+                    Log.i(
+                        "AIC",
+                        "Completed Android N+ file copy. Attempting to return the cached file"
+                    )
+                    return FileProvider.getUriForFile(context, authority, cacheLocation)
+                } catch (e: Exception) {
+                    Log.e("AIC", "${e.message}")
+                    Log.i("AIC", "Trying to provide URI manually")
+                    val path = "content://$authority/files/my_images/"
+
+                    if (CommonVersionCheck.isAtLeastO26()) {
+                        Files.createDirectories(Paths.get(path))
+                    } else {
+                        val directory = File(path)
+                        if (!directory.exists()) directory.mkdirs()
+                    }
+
+                    return Uri.parse("$path${file.name}")
+                } finally {
+                    input?.close()
+                    output?.close()
+                }
+            } catch (e: Exception) {
+                Log.e("AIC", "${e.message}")
+
+                if (!CommonVersionCheck.isAtLeastQ29()) {
+                    val cacheDir = context.externalCacheDir
+                    cacheDir?.let {
+                        try {
+                            Log.i(
+                                "AIC",
+                                "Use External storage, do not work for OS 29 and above"
+                            )
+                            return Uri.fromFile(File(cacheDir.path, file.absolutePath))
+                        } catch (e: Exception) {
+                            Log.e("AIC", "${e.message}")
+                        }
+                    }
+                }
+                // If nothing else work we try
+                Log.i("AIC", "Try get URI using file://")
+                return Uri.fromFile(file)
+            }
+        }
+    }
+}
