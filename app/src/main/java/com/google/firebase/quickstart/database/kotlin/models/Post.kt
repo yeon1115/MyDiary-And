@@ -10,6 +10,7 @@ data class Post(
     var author: String? = "",
     var title: String? = "",
     var body: String? = "",
+    var photoUrl: String? = "",
     var starCount: Int = 0,
     var stars: MutableMap<String, Boolean> = HashMap()
 ) {
@@ -24,6 +25,7 @@ data class Post(
                 "author" to author,
                 "title" to title,
                 "body" to body,
+                "photoUrl" to photoUrl,
                 "starCount" to starCount,
                 "stars" to stars
         )

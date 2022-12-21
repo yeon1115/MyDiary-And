@@ -81,7 +81,8 @@ class NewPostFragment : BaseFragment() {
                         } else {
                             // Write new post
                             //writeNewPost(userId, user.username.toString(), title, body)
-                            FireUtil.writeNewPost(user.username.toString(), title, body)
+                            val post = Post(uid, user.username.toString(), title, body)
+                            FireUtil.writeNewPost(post)
                         }
 
                         setEditingEnabled(true)
